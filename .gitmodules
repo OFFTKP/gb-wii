@@ -1,0 +1,3 @@
+[submodule "GameboyTKP"]
+	path = GameboyTKP
+	url = https://github.com/OFFTKP/GameboyTKP
