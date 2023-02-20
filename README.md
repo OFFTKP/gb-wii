@@ -1,3 +1,3 @@
 ![wii](./image.png)
 
-wip gameboy emulator port to the wii
+Gameboy emulator Wii port for fun and

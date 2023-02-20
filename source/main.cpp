@@ -57,7 +57,9 @@ void YfromRGB(unsigned char& Y, unsigned char R, unsigned char G, unsigned char 
 
 int main() {
     u32 wpaddown;
+    u32 wpadup;
     GRRLIB_Init();
+    GRRLIB_2dMode();
     WPAD_Init();
     WPAD_SetDataFormat(WPAD_CHAN_0, WPAD_FMT_BTNS_ACC_IR);
     GRRLIB_texImg* tex_sprite_png = GRRLIB_CreateEmptyTexture(160, 144);
@@ -65,34 +67,38 @@ int main() {
     GRRLIB_InitTileSet(tex_BMfont5, 8, 16, 0);
     GB_WiiWrapper gb;
     gb.LoadCartridge((void*)Tetris_gbc);
-    for (int i = 0; i < 200000; i++) {
-        gb.Update();
-    }
-    std::stringstream ss;
-    ss << std::hex << (int)gb.cpu_.PC << " A:" << (int)gb.cpu_.A << " B:" << (int)gb.cpu_.B << " C:" << (int)gb.cpu_.D << " D:" << (int)gb.cpu_.D << " E:" << (int)gb.cpu_.E << " H:" << (int)gb.cpu_.H << " L:" << (int)gb.cpu_.L;
-    std::string s = ss.str();
-    uint8_t* data = (uint8_t*)gb.GetScreenData();
-    int pix = 0;
-    bool b = false;
-    
-    for (int y = 0; y < 144; y++) {
-        for (int x = 0; x < 160; x++) {
-            uint32_t col = *(uint32_t*)(data + pix);
-            GRRLIB_SetPixelTotexImg(x, y, tex_sprite_png, col);
-            pix += 4;
-        }
-    }
-    b ^= 1;
     while(1) {
         WPAD_SetVRes(0, 640, 480);
         WPAD_ScanPads();
         wpaddown = WPAD_ButtonsDown(0);
+        wpadup = WPAD_ButtonsUp(0);
         GRRLIB_FillScreen(GRRLIB_BLACK);
-        GRRLIB_DrawImg(0, 0, tex_sprite_png, 0, 1, 1, GRRLIB_WHITE);
-        GRRLIB_Printf(200, 27, tex_BMfont5, GRRLIB_WHITE, 1, s.c_str());
         if(wpaddown & WPAD_BUTTON_HOME) {
             break;
+        } else if (wpaddown != 0) {
+            gb.HandleKeyDown(wpaddown);
         }
+        if (wpadup) {
+            gb.HandleKeyUp(wpadup);
+        }
+        for (int i = 0; i < 70000; i++) {
+            gb.Update();
+        }
+        uint8_t* data = (uint8_t*)gb.GetScreenData();
+        int pix = 0;
+        for (int y = 0; y < 144; y++) {
+            for (int x = 0; x < 160; x++) {
+                uint32_t col = *(uint32_t*)(data + pix);
+                GRRLIB_SetPixelTotexImg(x, y, tex_sprite_png, col);
+                pix += 4;
+            }
+        }
+        GRRLIB_FlushTex(tex_sprite_png);
+        GRRLIB_DrawImg(0, 0, tex_sprite_png, 0, 1, 1, GRRLIB_WHITE);
+        std::stringstream ss;
+        ss << std::hex << gb.cpu_.Instructions[gb.cpu_.last_instr_].name << " " << (int)gb.cpu_.PC << " A:" << (int)gb.cpu_.A << " B:" << (int)gb.cpu_.B << " C:" << (int)gb.cpu_.D << " D:" << (int)gb.cpu_.D << " E:" << (int)gb.cpu_.E << " H:" << (int)gb.cpu_.H << " L:" << (int)gb.cpu_.L;
+        std::string s = ss.str();
+        GRRLIB_Printf(200, 27, tex_BMfont5, GRRLIB_WHITE, 1, s.c_str());
         GRRLIB_Render();
     }
     GRRLIB_FreeTexture(tex_sprite_png);
